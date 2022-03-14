@@ -9,10 +9,10 @@ Router.post('/', async (req,res)=>{
     if(user==null){
         console.log(user)
         console.log("User not found");
-        
     }else try{
         if( await bcrypt.compare(req.body.password, user.password)){
             console.log("user logged in")
+            res.json({id:user._id})
         }else{
             console.log("Wrong password")
         }

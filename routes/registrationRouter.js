@@ -23,9 +23,11 @@ Router.post('/', async (req,res)=>{
 
             //save user to the database
             try{
-                user = await user.save()
+                user = await user.save().then(doc => {
+                    console.log(doc);
+                    res.send({ id: doc._id });
+                  })
                 console.log("User saved")
-                //send response
             }catch(e){
                 console.log("Problem encountered");
             }
