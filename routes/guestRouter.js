@@ -21,8 +21,6 @@ Router.post('/:id/cart/update', async (req,res)=>{
             ...req.body
         })
 
-        console.log(orderData)
-
         try{
             await orderData.save().then(doc =>{
                 res.send("success")

@@ -9,6 +9,9 @@ const productSchema = mongoose.Schema({
     },
     desc:{
         type:String,
+    },
+    pathname:{
+        type:String
     }
 })
 
