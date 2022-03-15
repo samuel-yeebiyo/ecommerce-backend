@@ -13,6 +13,16 @@ Router.post('/:id/cart/update', async (req,res)=>{
     //find if a cart exists for the guest that is not fulfilled
     const guestOrder = await GuestOrder.findOne({guestId: req.params.id, fulfilled:false})
 
+    if(guestOrder != null && req.body.items.length == 0){
+        await guestOrder.delete().then(()=>{
+            console.log("Successfully deleted order")
+            res.send("Delete success")
+            
+        })
+        return
+    }
+
+
     if(guestOrder == null){
         
         //create guest order if none

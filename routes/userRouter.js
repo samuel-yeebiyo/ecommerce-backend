@@ -18,6 +18,16 @@ Router.post('/:id/cart/update', authUser , async (req,res)=>{
     
     const userOrder = await UserOrder.findOne({userId: req.params.id, fulfilled:false})
 
+
+    if(userOrder != null && req.body.items.length == 0){
+        await userOrder.delete().then(()=>{
+            console.log("Successfully deleted order")
+            res.send("Delete success")
+            
+        })
+        return
+    }
+
     if(userOrder == null){
         console.log("Creating a new user order")
         let orderData = new UserOrder({
@@ -67,14 +77,19 @@ Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
             subtotal:guestOrder.subtotal
         })
 
+
+        console.log(orderData)
+
         try{
             await orderData.save().then(doc =>{
-                res.send("success")
+                console.log("Saving was a success")
+                res.send({message:"Success"})
             })
 
             //deleting guest order
             await guestOrder.delete()
         }catch(e){
+            console.log("Not saved")
             console.log(e)
         }
     }else{
@@ -98,12 +113,14 @@ Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
 
         try{
             await userOrder.save().then(doc =>{
-                res.send("success")
+                console.log(doc)
+                res.send({message:"Success"})
             })
 
             //deleting guest orders
             await guestOrder.delete()
         }catch(e){
+            console.log("Failed to save")
             console.log(e)
         }
         
@@ -122,6 +139,8 @@ Router.get('/:id/cart', authUser, async(req, res) =>{
             items:userOrder.items,
             subtotal:userOrder.subtotal
         })
+    }else{
+        res.send({message:"No cart"})
     }
 
 })
