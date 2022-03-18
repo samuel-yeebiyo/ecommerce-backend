@@ -3,6 +3,7 @@ const Router = express.Router()
 
 const User = require('../models/User')
 const GuestOrder = require('../models/guestOrder')
+const Reciept = require('../models/reciept')
 
 
 //route to update guest cart
@@ -16,7 +17,7 @@ Router.post('/:id/cart/update', async (req,res)=>{
     if(guestOrder != null && req.body.items.length == 0){
         await guestOrder.delete().then(()=>{
             console.log("Successfully deleted order")
-            res.send("Delete success")
+            res.send({message:"Success"})
             
         })
         return
@@ -33,7 +34,7 @@ Router.post('/:id/cart/update', async (req,res)=>{
 
         try{
             await orderData.save().then(doc =>{
-                res.send("success")
+                res.send({message:"Success"})
             })
         }catch(e){
             console.log("Problem with saving")
@@ -45,7 +46,7 @@ Router.post('/:id/cart/update', async (req,res)=>{
         guestOrder.subtotal = req.body.subtotal
         try{
                 await guestOrder.save().then(doc =>{
-                    res.send("success")
+                    res.send({message:"Success"})
                 })
             }catch(e){
                 console.log("Problem with saving")
@@ -56,8 +57,7 @@ Router.post('/:id/cart/update', async (req,res)=>{
 Router.get('/:id/cart', async(req, res) =>{
     console.log("Getting cart")
 
-    //find the cart for the guest
-    const guestOrder = await GuestOrder.findOne({guestId: req.params.id, fulfilled:false})
+    
 
     if(guestOrder != null){
 
@@ -70,5 +70,34 @@ Router.get('/:id/cart', async(req, res) =>{
 
 
 })
+
+
+//handling payment
+Router.post('/:id/pay', async(req, res)=>{
+    console.log("Processing payment")
+
+    //find the cart for the guest
+    const guestOrder = await GuestOrder.findOne({guestId: req.params.id, fulfilled:false})
+
+    if(guestOrder != null){
+        
+        let reciept = new Reciept({
+            order_id:guestOrder._id,
+            email:req.body.email,
+            amount:guestOrder.subtotal,
+            confirmation:req.body.confirmation
+        })
+        try{
+            await reciept.save().then(doc =>{
+                res.send({message:"Success"})
+                console.log(reciept)
+            })
+        }catch(e){
+            console.log("Problem with saving")
+        }
+    }
+
+})
+
 
 module.exports = Router
