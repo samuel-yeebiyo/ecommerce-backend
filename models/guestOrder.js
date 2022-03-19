@@ -16,9 +16,8 @@ const guestOrder = mongoose.Schema({
         default: 0
     },
     paymentId:{
-        type:Number,
-        required: true,
-        default:0
+        type:String,
+        default: ""
     },
     fulfilled:{
         type:Boolean,

@@ -25,13 +25,14 @@ Router.post('/:id/cart/update', async (req,res)=>{
 
 
     if(guestOrder == null){
-        
+        console.log("here")
         //create guest order if none
         let orderData = new GuestOrder({
             guestId: req.params.id,
             ...req.body
         })
 
+        console.log(orderData)
         try{
             await orderData.save().then(doc =>{
                 res.send({message:"Success"})
@@ -57,7 +58,8 @@ Router.post('/:id/cart/update', async (req,res)=>{
 Router.get('/:id/cart', async(req, res) =>{
     console.log("Getting cart")
 
-    
+    //find the cart for the guest
+    const guestOrder = await GuestOrder.findOne({guestId: req.params.id, fulfilled:false})
 
     if(guestOrder != null){
 
@@ -66,6 +68,8 @@ Router.get('/:id/cart', async(req, res) =>{
             items:guestOrder.items,
             subtotal:guestOrder.subtotal
         })
+    }else{
+        res.send({message:"No cart"})
     }
 
 
@@ -87,11 +91,16 @@ Router.post('/:id/pay', async(req, res)=>{
             amount:guestOrder.subtotal,
             confirmation:req.body.confirmation
         })
+
+        guestOrder.fulfilled =true
+        guestOrder.paymentId = reciept._id
+
         try{
-            await reciept.save().then(doc =>{
-                res.send({message:"Success"})
+            await reciept.save().then(async doc =>{
+                res.send(doc)
                 console.log(reciept)
             })
+            await guestOrder.save()
         }catch(e){
             console.log("Problem with saving")
         }

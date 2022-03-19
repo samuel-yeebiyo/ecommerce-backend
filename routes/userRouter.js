@@ -5,6 +5,7 @@ const User = require('../models/User')
 
 const UserOrder = require('../models/userOrder')
 const GuestOrder = require('../models/guestOrder')
+const Reciept = require('../models/reciept')
 
 async function authUser (req, res, next){
     let user = await User.findOne({_id: req.params.id})
@@ -22,7 +23,7 @@ Router.post('/:id/cart/update', authUser , async (req,res)=>{
     if(userOrder != null && req.body.items.length == 0){
         await userOrder.delete().then(()=>{
             console.log("Successfully deleted order")
-            res.send("Delete success")
+            res.send({message:"Success"})
             
         })
         return
@@ -39,7 +40,7 @@ Router.post('/:id/cart/update', authUser , async (req,res)=>{
 
         try{
             await orderData.save().then(doc =>{
-                res.send("success")
+                res.send({message:"Success"})
             })
         }catch(e){
             console.log(e)
@@ -50,8 +51,7 @@ Router.post('/:id/cart/update', authUser , async (req,res)=>{
        userOrder.subtotal = req.body.subtotal
        try{
             await userOrder.save().then(doc =>{
-                res.send("success")
-
+                res.send({message:"Success"})
             })
         }catch(e){
             console.log("Problem with saving")
@@ -92,6 +92,8 @@ Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
             console.log("Not saved")
             console.log(e)
         }
+    }else if(guestOrder == null){
+        res.send({message: "Guest order is empty"})
     }else{
         console.log("Updating existing user order")
 
@@ -145,6 +147,38 @@ Router.get('/:id/cart', authUser, async(req, res) =>{
 
 })
 
+//handling payment
+Router.post('/:id/pay', authUser, async(req, res)=>{
+    console.log("Processing payment")
+
+    //find the cart for the guest
+    const userOrder = await UserOrder.findOne({userId: req.params.id, fulfilled:false})
+    const user = await User.findOne({_id: req.params.id})
+
+    if(userOrder != null){
+        
+        let reciept = new Reciept({
+            order_id:userOrder._id,
+            email:user.email,
+            amount:userOrder.subtotal,
+            confirmation:req.body.confirmation
+        })
+
+        userOrder.fulfilled =true
+        userOrder.paymentId = reciept._id
+
+        try{
+            await reciept.save().then(async doc =>{
+                res.send(doc)
+                console.log(reciept)
+            })
+            await userOrder.save()
+        }catch(e){
+            console.log("Problem with saving")
+        }
+    }
+
+})
 
 
 

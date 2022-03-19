@@ -16,6 +16,10 @@ const receipt = mongoose.Schema({
     confirmation:{
         type:String,
         required:true
+    },
+    date:{
+        type:Date,
+        default:new Date()
     }
 })
 
