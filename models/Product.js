@@ -10,6 +10,15 @@ const productSchema = mongoose.Schema({
     desc:{
         type:String,
     },
+    material:{
+        type:String
+    },
+    diameter:{
+        type:String
+    },
+    size:{
+        type:String
+    },
     pathname:{
         type:String
     }

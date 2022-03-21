@@ -4,7 +4,7 @@ const Item = require('./Item')
 
 const guestOrder = mongoose.Schema({
     guestId:{
-        type: Number,
+        type: String,
         required:true
     },
     items:{

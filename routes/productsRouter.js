@@ -36,6 +36,9 @@ Router.post('/add/', async (req, res)=>{
         name:req.body.name,
         price:req.body.price,
         desc:req.body.desc,
+        material:req.body.material,
+        diameter:req.body.diameter,
+        size:req.body.size,
         pathname:req.body.pathname
     })
 
