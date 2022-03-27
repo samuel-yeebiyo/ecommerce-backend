@@ -33,12 +33,13 @@ Router.get('/get/:id/', async (req, res)=>{
 Router.post('/add/', async (req, res)=>{
 
     const product = new Product({
+        shopId:req.body.id,
         name:req.body.name,
         price:req.body.price,
         desc:req.body.desc,
-        material:req.body.material,
-        diameter:req.body.diameter,
-        size:req.body.size,
+        category:req.body.category,
+        primary:req.body.primary,
+        secondary:req.body.secondary,
         pathname:req.body.pathname
     })
 

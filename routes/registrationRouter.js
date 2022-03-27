@@ -4,6 +4,8 @@ const Router = express.Router()
 const User = require('../models/User')
 const bcrypt = require('bcrypt')
 
+const Shop = require('../models/shop')
+
 Router.post('/', async (req,res)=>{
     let username_exists = await User.findOne({username: req.body.username})
     let email_exists = await User.findOne({email:req.body.email})
@@ -38,6 +40,29 @@ Router.post('/', async (req,res)=>{
     }else{
         console.log("User exists")
     }
+})
+
+Router.post('/seller', async (req, res)=>{
+    console.log("Called seller endpoint")
+    const user = await User.findOne({_id:req.body.id})
+    if(user){
+        let shop = new Shop({
+            sellerId:user._id,
+            name:req.body.name,
+            totalRevenue:0,
+            publicKey:req.body.pubkey
+        })
+        try{
+            await shop.save().then(doc => {
+                console.log(doc);
+                res.send({id:doc._id });
+            })
+            console.log("Shop saved")
+        }catch(e){
+            console.log("Problem encountered");
+        }
+
+    }else res.send({message:"failed"})
 })
 
 module.exports = Router

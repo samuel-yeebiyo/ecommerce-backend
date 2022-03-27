@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
 
 const productSchema = mongoose.Schema({
+    shopId:{
+        type:String,
+        require:true
+    },
     name:{
         type: String,
     },
@@ -10,14 +14,15 @@ const productSchema = mongoose.Schema({
     desc:{
         type:String,
     },
-    material:{
+    category:{
+        type:String,
+        default:""
+    },
+    primary:{
         type:String
     },
-    diameter:{
-        type:String
-    },
-    size:{
-        type:String
+    secondary:{
+        type:[String]
     },
     pathname:{
         type:String

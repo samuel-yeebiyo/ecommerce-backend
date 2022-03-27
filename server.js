@@ -10,6 +10,7 @@ const loginRouter = require('./routes/loginRouter')
 const userRouter = require('./routes/userRouter')
 const guestRouter = require('./routes/guestRouter')
 const productsRouter = require('./routes/productsRouter')
+const uploadRouter = require('./routes/uploadRouter')
 
 mongoose.connect(process.env.MONGO_URI, ()=>{
     console.log("Mongodb connected")
@@ -21,6 +22,8 @@ app.use(cors())
 app.get('/', (req,res)=>{
     res.send("Hello")
 })
+
+app.use('/upload', uploadRouter)
 
 app.use('/register', registrationRouter)
 
