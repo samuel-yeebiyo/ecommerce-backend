@@ -12,6 +12,11 @@ const userSchema = mongoose.Schema({
     password:{
         type:String,
         require:true
+    },
+    hasShop:{
+        type:Boolean,
+        require:true,
+        default:false
     }
 })
 

@@ -23,6 +23,10 @@ const Shop = mongoose.Schema({
     publicKey:{
         type:String,
         required:true
+    },
+    listings:{
+        type:[String],
+        required:true
     }
 })
 
