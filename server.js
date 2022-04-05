@@ -11,6 +11,7 @@ const userRouter = require('./routes/userRouter')
 const guestRouter = require('./routes/guestRouter')
 const productsRouter = require('./routes/productsRouter')
 const uploadRouter = require('./routes/uploadRouter')
+const shopsRouter  =require('./routes/shopsRouter')
 
 mongoose.connect(process.env.MONGO_URI, ()=>{
     console.log("Mongodb connected")
@@ -34,6 +35,8 @@ app.use('/user',  userRouter)
 app.use('/guest', guestRouter)
 
 app.use('/products', productsRouter)
+
+app.use('/shops/', shopsRouter)
 
 app.listen(8000, ()=>{
     console.log("Port listening on port 8000")

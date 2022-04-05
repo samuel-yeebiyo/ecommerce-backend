@@ -6,6 +6,7 @@ const User = require('../models/User')
 const UserOrder = require('../models/userOrder')
 const GuestOrder = require('../models/guestOrder')
 const Reciept = require('../models/reciept')
+const Shop = require('../models/shop')
 
 async function authUser (req, res, next){
     let user = await User.findOne({_id: req.params.id})
@@ -147,6 +148,21 @@ Router.get('/:id/cart', authUser, async(req, res) =>{
 
 })
 
+//get completed orders
+Router.get('/:id/orders', authUser, async(req, res)=>{
+    console.log("getting completed orders")
+
+    const userOrders = await UserOrder.find({userId:req.params.id, fulfilled:true})
+
+    if(userOrders != null){
+        res.send({
+            orders:userOrders
+        })
+    }else{
+        res.send({message:"No fulfilled orders"})
+    }
+})
+
 //handling payment
 Router.post('/:id/pay', authUser, async(req, res)=>{
     console.log("Processing payment")
@@ -181,7 +197,35 @@ Router.post('/:id/pay', authUser, async(req, res)=>{
 })
 
 
+//get relevant user information
+Router.get('/:id/get', authUser, async(req, res)=>{
+    const user = await User.findOne({_id: req.params.id})
+    if(user!= null){
+        let shopId = ""
+        if(user.hasShop){
+            const shop = await Shop.findOne({sellerId:user._id})
+            shopId = shop._id
+        }
+        res.send({
+            hasShop:user.hasShop,
+            shopID:shopId
+        })
+    }
+})
 
+Router.get('/:id/get-shop', authUser, async(req, res)=>{
+    const user = await User.findOne({_id:req.params.id, hasShop:true})
+    if(user != null){
+        const shop = await Shop.findOne({sellerId:user._id})
+        if(shop != null){
+            res.send({
+                listings:shop.listings.length,
+                sales:shop.sales.length,
+                revenue:shop.totalRevenue
+            })
+        }
+    }
+})
 
 
 module.exports = Router

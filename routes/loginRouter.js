@@ -12,7 +12,7 @@ Router.post('/', async (req,res)=>{
     }else try{
         if( await bcrypt.compare(req.body.password, user.password)){
             console.log("user logged in")
-            res.json({id:user._id})
+            res.json({id:user._id, hasShop:user.hasShop})
         }else{
             console.log("Wrong password")
         }

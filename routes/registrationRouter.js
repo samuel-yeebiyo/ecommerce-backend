@@ -27,7 +27,7 @@ Router.post('/', async (req,res)=>{
             try{
                 user = await user.save().then(doc => {
                     console.log(doc);
-                    res.send({ id: doc._id });
+                    res.send({ id: doc._id, hasShop: doc.hasShop});
                   })
                 console.log("User saved")
             }catch(e){
@@ -44,7 +44,7 @@ Router.post('/', async (req,res)=>{
 
 Router.post('/seller', async (req, res)=>{
     console.log("Called seller endpoint")
-    const user = await User.findOne({_id:req.body.id})
+    let user = await User.findOne({_id:req.body.id})
     if(user){
         let shop = new Shop({
             sellerId:user._id,
@@ -52,12 +52,14 @@ Router.post('/seller', async (req, res)=>{
             totalRevenue:0,
             publicKey:req.body.pubkey
         })
+        user.hasShop = true
         try{
             await shop.save().then(doc => {
                 console.log(doc);
                 res.send({id:doc._id });
             })
             console.log("Shop saved")
+            user.save()
         }catch(e){
             console.log("Problem encountered");
         }
