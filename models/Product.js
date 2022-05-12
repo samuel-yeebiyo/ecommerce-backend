@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const Review = require('./review')
 
 const productSchema = mongoose.Schema({
     shopId:{
@@ -14,9 +15,12 @@ const productSchema = mongoose.Schema({
     desc:{
         type:String,
     },
+    reviews:{
+        type:[String],
+        default:[]
+    },
     category:{
         type:String,
-        default:""
     },
     primary:{
         type:String
@@ -26,7 +30,19 @@ const productSchema = mongoose.Schema({
     },
     pathname:{
         type:String
+    },
+    rawTags:{
+        type:String
+    },
+    tags:{
+        type:[String]
+    },
+    views:{
+        type:Number,
+        default:0
     }
 })
+
+productSchema.index({name:'text', rawTags:'text'})
 
 module.exports = mongoose.model('Product', productSchema)

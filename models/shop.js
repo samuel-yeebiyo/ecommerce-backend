@@ -11,6 +11,14 @@ const Shop = mongoose.Schema({
         type:String,
         required:true
     },
+    image:{
+        type:String,
+        required:true
+    },
+    description:{
+        type:String,
+        required:true
+    },
     sales:{
         type:[Sale],
         default:[]
@@ -27,6 +35,14 @@ const Shop = mongoose.Schema({
     listings:{
         type:[String],
         required:true
+    },
+    pathname:{
+        type:String,
+        required:true
+    },
+    views:{
+        type:Number,
+        default:0,
     }
 })
 

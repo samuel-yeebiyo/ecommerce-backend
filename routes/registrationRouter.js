@@ -4,12 +4,16 @@ const Router = express.Router()
 const User = require('../models/User')
 const bcrypt = require('bcrypt')
 
+const jwt = require('jsonwebtoken')
+require('dotenv').config()
+
+const authenticateToken = require('../middleware/auth')
+
 const Shop = require('../models/shop')
 
 Router.post('/', async (req,res)=>{
-    let username_exists = await User.findOne({username: req.body.username})
     let email_exists = await User.findOne({email:req.body.email})
-    if(username_exists == null && email_exists == null){
+    if(email_exists == null){
         try{
             
             //hash password
@@ -18,7 +22,8 @@ Router.post('/', async (req,res)=>{
 
             //create user with hashed password
             let user = new User({
-                username: req.body.username,
+                first_name: req.body.first_name,
+                last_name:req.body.last_name,
                 email:req.body.email,
                 password: hashedPass,
             })
@@ -27,11 +32,24 @@ Router.post('/', async (req,res)=>{
             try{
                 user = await user.save().then(doc => {
                     console.log(doc);
-                    res.send({ id: doc._id, hasShop: doc.hasShop});
+                    
+                    let accessToken = jwt.sign({
+                        id:doc._id,
+                        shopId:""
+                    }, process.env.JWT_ACCESS)
+
+                    let refreshToken = jwt.sign({
+                        id:doc._id,
+                        shopId:""
+                    }, process.env.JWT_REFRESH)
+
+
+                    res.send({ id: doc._id, shopId: doc.shopId, accessToken:accessToken, refreshToken:refreshToken});
                   })
                 console.log("User saved")
             }catch(e){
                 console.log("Problem encountered");
+                console.log(e)
             }
         }
         catch (e){
@@ -42,24 +60,47 @@ Router.post('/', async (req,res)=>{
     }
 })
 
-Router.post('/seller', async (req, res)=>{
+Router.post('/seller', authenticateToken, async (req, res)=>{
+
+    const {id} = req.user
+
     console.log("Called seller endpoint")
-    let user = await User.findOne({_id:req.body.id})
+    let user = await User.findOne({_id:id})
+    
     if(user){
         let shop = new Shop({
             sellerId:user._id,
             name:req.body.name,
+            image:req.body.image,
+            description:req.body.description,
             totalRevenue:0,
-            publicKey:req.body.pubkey
+            publicKey:req.body.pubkey,
+            pathname:req.body.pathname
         })
-        user.hasShop = true
+
+        console.log({shop})
+        
         try{
             await shop.save().then(doc => {
                 console.log(doc);
-                res.send({id:doc._id });
+
+                let accessToken = jwt.sign({
+                    id:user._id,
+                    shopId:doc._id
+                }, process.env.JWT_ACCESS)
+
+                let refreshToken = jwt.sign({
+                    id:user._id,
+                    shopId:doc._id
+                }, process.env.JWT_REFRESH)
+                
+                res.send({id:doc._id, accessToken:accessToken, refreshToken:refreshToken });
             })
+
             console.log("Shop saved")
-            user.save()
+            user.save().then((doc)=>console.log({doc}))
+
+
         }catch(e){
             console.log("Problem encountered");
         }

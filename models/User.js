@@ -1,7 +1,11 @@
 const mongoose = require('mongoose')
 
 const userSchema = mongoose.Schema({
-    username:{
+    first_name:{
+        type: String,
+        required: true
+    },
+    last_name:{
         type: String,
         required: true
     },
@@ -12,11 +16,6 @@ const userSchema = mongoose.Schema({
     password:{
         type:String,
         require:true
-    },
-    hasShop:{
-        type:Boolean,
-        require:true,
-        default:false
     }
 })
 

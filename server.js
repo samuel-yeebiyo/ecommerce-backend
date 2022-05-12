@@ -5,6 +5,9 @@ const mongoose = require('mongoose')
 
 require('dotenv').config()
 
+
+
+
 const registrationRouter = require('./routes/registrationRouter')
 const loginRouter = require('./routes/loginRouter')
 const userRouter = require('./routes/userRouter')
@@ -12,6 +15,8 @@ const guestRouter = require('./routes/guestRouter')
 const productsRouter = require('./routes/productsRouter')
 const uploadRouter = require('./routes/uploadRouter')
 const shopsRouter  =require('./routes/shopsRouter')
+const resetRouter = require('./routes/reset')
+const searchRouter = require('./routes/searchRouter')
 
 mongoose.connect(process.env.MONGO_URI, ()=>{
     console.log("Mongodb connected")
@@ -37,6 +42,10 @@ app.use('/guest', guestRouter)
 app.use('/products', productsRouter)
 
 app.use('/shops/', shopsRouter)
+
+app.use('/search/', searchRouter)
+
+app.use('/reset', resetRouter)
 
 app.listen(8000, ()=>{
     console.log("Port listening on port 8000")
