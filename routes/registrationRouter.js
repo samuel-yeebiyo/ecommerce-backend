@@ -31,7 +31,8 @@ Router.post('/', async (req,res)=>{
             //save user to the database
             try{
                 user = await user.save().then(doc => {
-                    console.log(doc);
+
+                    console.log(`User ${doc.first_name} created`)
                     
                     let accessToken = jwt.sign({
                         id:doc._id,
@@ -45,17 +46,19 @@ Router.post('/', async (req,res)=>{
 
 
                     res.send({ id: doc._id, shopId: doc.shopId, accessToken:accessToken, refreshToken:refreshToken});
-                  })
-                console.log("User saved")
+                })
+
             }catch(e){
-                console.log("Problem encountered");
+                console.log("Problem encountered with saving user");
+                res.status(500).send({message: "Failed to save"})
                 console.log(e)
             }
         }
         catch (e){
-            res.status(500).send("Failed")
+            res.status(500).send("Failed to hash password")
         }        
     }else{
+        res.status(500).send("User exists")
         console.log("User exists")
     }
 })
@@ -68,12 +71,12 @@ Router.post('/seller', authenticateToken, async (req, res)=>{
     let user = await User.findOne({_id:id})
     
     if(user){
+        
         let shop = new Shop({
-            sellerId:user._id,
+            seller:user._id,
             name:req.body.name,
             image:req.body.image,
             description:req.body.description,
-            totalRevenue:0,
             publicKey:req.body.pubkey,
             pathname:req.body.pathname
         })

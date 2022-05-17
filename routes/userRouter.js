@@ -11,6 +11,8 @@ const pendingReview = require('../models/pendingReview')
 const Review = require('../models/review')
 const Order = require('../models/order')
 const Address = require('../models/address')
+const Sale = require('../models/sales')
+const Product = require('../models/Product')
 
 const authenticateToken = require('../middleware/auth')
 
@@ -21,54 +23,124 @@ async function authUser (req, res, next){
     }else return
 }
 
-
-//updating cart
-Router.post('/cart/update', authenticateToken , async (req,res)=>{
+//removing from cart
+Router.post('/cart/remove', authenticateToken, async (req, res)=>{
 
     const {id} = req.user
+    const {product} = req.body
+
+    const userOrder = await UserOrder.findOne({user: id, paid:false})
+
+
+    let index = userOrder.items.findIndex(element => element.product == product._id)
+    console.log(index)
     
-    const userOrder = await UserOrder.findOne({userId: id, fulfilled:false})
+    //
+    if(index != -1){
+        
+        console.log("Found")
+
+        if(userOrder.items[index].quantity==1){
+            userOrder.items.splice(index, 1)
+        }else userOrder.items[index].quantity-=1
+        userOrder.subtotal -= product.price 
+
+    }
+
+    console.log(userOrder)
+    try{
+        await userOrder.save().then(doc =>{
+            res.send({message:"Success", cart: userOrder})
+        })
+    }catch(e){
+        console.log("Problem with saving")
+    }
 
 
-    // if(userOrder != null && req.body.items.length == 0){
-    //     await userOrder.delete().then(()=>{
-    //         console.log("Successfully deleted order")
-    //         res.send({message:"Success"})
-            
-    //     })
-    //     return
-    // }
+})
+
+//adding to cart
+Router.post('/cart/add', authenticateToken , async (req,res)=>{
+
+    const {id} = req.user
+    const {product} = req.body
+    
+    const userOrder = await UserOrder.findOne({user: id, paid:false})
 
     if(userOrder == null){
         console.log("Creating a new user order")
         let orderData = new UserOrder({
-            userId: id,
-            ...req.body
+            user: id,
+            items:{
+                product:product._id,
+                quantity:1
+            },
+            subtotal:product.price
         })
 
         console.log(orderData)
 
         try{
             await orderData.save().then(doc =>{
-                res.send({message:"Success"})
+                res.send({message:"Success", cart: userOrder})
             })
         }catch(e){
             console.log(e)
         }
+
     }else{
-       
-       userOrder.items = [...req.body.items],
-       userOrder.subtotal = req.body.subtotal
+
+        let index = userOrder.items.findIndex(element => element.product == product._id)
+        console.log(index)
+        
+        //if item already exists, add quantity and price
+        if(index != -1){
+            
+            console.log("Found")
+
+            userOrder.items[index].quantity+=1
+            userOrder.subtotal += product.price        
+        }else{
+            
+            //if item is new, add entry with the quantity as 1
+
+            userOrder.items.push({
+                product: product._id,
+                quantity: 1,
+            })
+            userOrder.subtotal += product.price
+        }
 
        console.log(userOrder)
        try{
             await userOrder.save().then(doc =>{
-                res.send({message:"Success"})
+                res.send({message:"Success", cart: userOrder})
             })
         }catch(e){
             console.log("Problem with saving")
         }
     }
+})
+
+//fetching cart
+Router.get('/cart', authenticateToken, async(req, res) =>{
+    console.log("Getting cart")
+
+    const {id} = req.user
+
+    const userOrder = await UserOrder.findOne({user: id, paid:false}).populate({
+        path:'items',
+        populate:{path:'product'}
+    })
+
+    console.log(userOrder)
+
+    if(userOrder != null){
+        res.send(userOrder)
+    }else{
+        res.send({message:"No cart"})
+    }
+
 })
 
 //trasnferring userless cart to user
@@ -144,25 +216,6 @@ Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
 
 })
 
-//fetching cart
-Router.get('/cart', authenticateToken, async(req, res) =>{
-    console.log("Getting cart")
-
-    const {id} = req.user
-
-    const userOrder = await UserOrder.findOne({userId: id, fulfilled:false})
-
-    if(userOrder != null){
-        res.send({
-            items:userOrder.items,
-            subtotal:userOrder.subtotal
-        })
-    }else{
-        res.send({message:"No cart"})
-    }
-
-})
-
 //handling payment
 Router.post('/pay', authenticateToken, async(req, res)=>{
     console.log("Processing payment")
@@ -170,7 +223,10 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
     const {id} = req.user
 
     //find the cart for the guest
-    const userOrder = await UserOrder.findOne({userId: id, fulfilled:false})
+    const userOrder = await UserOrder.findOne({user: id, paid:false}).populate({
+        path:'items',
+        populate:{path:'product'}
+    })
     const user = await User.findOne({_id: id})
 
     if(userOrder != null){
@@ -182,7 +238,7 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
             confirmation:req.body.confirmation
         })
 
-        userOrder.fulfilled =true
+        userOrder.paid = true
         userOrder.paymentId = reciept._id
 
         try{
@@ -192,17 +248,17 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
                 res.send(doc)
                 
                 userOrder.items.map(async (item)=>{
-                    let pastReview = await Review.findOne({userId:user._id, productId:item.itemId})
+                    let pastReview = await Review.findOne({user:user._id, product:item.product._id})
                     
                     if(pastReview == null){
-                        let pastPendingReviews = await pendingReview.findOne({userId: user._id, productId:item.itemId})
+                        let pastPendingReviews = await pendingReview.findOne({user: user._id, product:item.product._id})
                         
                         if(pastPendingReviews == null){
 
                             let newReview = new pendingReview({
-                                userId:user._id,
-                                productId:item.itemId,
-                                orderNum:userOrder._id
+                                user:user._id,
+                                product:item.product._id,
+                                order:userOrder._id
                             })
 
                             try{
@@ -211,23 +267,47 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
                                 console.log(e)
                                 console.log("error")
                             }
-
                         }
                     }
 
-                    const order = new Order({
-                        orderId:userOrder._id,
-                        shopId:item.shopId,
-                        productId:item.itemId,
-                        unitPrice:item.price,
+                    let product = await Product.findOne({_id:item.product._id})
+                    product.revenue+=item.quantity*product.price
+
+                    await product.save()
+
+                    let shop = await Shop.findOne({_id: product.shop})
+                    shop.totalRevenue += item.quantity*product.price
+
+                    let sale = new Sale({
+                        product:product._id,
                         quantity:item.quantity,
-                        total:item.price*item.quantity,
+                        revenue:product.price*item.quantity
+                    })
+
+                    await sale.save()
+
+                    shop.sales.push(sale._id)
+
+                    await shop.save()
+
+                    const order = new Order({
+                        user:id,
+                        order:userOrder._id,
+                        shop:shop._id,
+                        product:product._id,
+                        productName:product.name,
+                        productImage:product.primary,
+                        unitPrice:product.price,
+                        quantity:item.quantity,
+                        total:product.price*item.quantity,
+                        address: req.body.address,
                         status:'pending'
                     })
 
                     await order.save()
 
                 })
+
 
             })
     
@@ -238,38 +318,15 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
 
 })
 
-//get relevant user information with id
-Router.get('/:id/get', authUser, async(req, res)=>{
-    const user = await User.findOne({_id: req.params.id})
-    if(user!= null){
-        let shopId = ""
-        if(user.hasShop){
-            const shop = await Shop.findOne({sellerId:user._id})
-            shopId = shop._id
-        }
-        res.send({
-            username:user.username,
-            email:user.email,
-            hasShop:user.hasShop,
-            shopID:shopId
-        })
-    }
-})
-
 Router.get('/get', authenticateToken, async(req, res)=>{
 
     console.log("Getting")
     
-    const {id} = req.user
+    const {id, shopId} = req.user
     
     const user = await User.findOne({_id: id})
     
     if(user!= null){
-        const shop = await Shop.findOne({sellerId:user._id})
-        let shopId  = ""
-        if(shop){
-            shopId = shop._id
-        }
         res.send({
             user:{
                 id:user._id,
@@ -373,11 +430,10 @@ Router.post('/update/address/:id', authenticateToken, async (req, res)=>{
 //get shop listing, sales, and revenue
 Router.get('/get-shop', authenticateToken, async(req, res)=>{
 
-    const {id} = req.user
+    const {shopId} = req.user
 
-    const user = await User.findOne({_id:id, hasShop:true})
-    if(user != null){
-        const shop = await Shop.findOne({sellerId:user._id})
+    if(shopId){
+        const shop = await Shop.findOne({_id:shopId})
         if(shop != null){
             res.send({
                 listings:shop.listings.length,
@@ -439,9 +495,30 @@ Router.get('/get-orders', authenticateToken, async (req, res)=>{
     const {id} = req.user
 
     //completed orders
-    const orders = await UserOrder.find({userId:id, fulfilled:true})
+
+    const allOrders = await Order.find({user:id})
+
+    const orders = []
+
+    //group orders by orderId
+    allOrders.map((order, idx)=>{
+
+        let index = orders.findIndex((element)=> element.orderId.valueOf() == order.order.valueOf())
+
+        if(index == -1){
+            orders.push({
+              orderId: order.order,
+              values: [idx]
+            })
+        }else{
+            orders[index].values.push(idx)
+        }
+    })
+
+    console.log(allOrders)
+    console.log(orders)
     
-    res.send([...orders])
+    res.send({map: orders, all: allOrders})
 })
 
 //get all orders
@@ -456,7 +533,10 @@ Router.get('/get-pending-reviews', authenticateToken, async (req, res)=>{
     console.log("Getting Reviews 1")
     const {id} = req.user
 
-    const pendingReviews = await pendingReview.find({userId:id})
+    const pendingReviews = await pendingReview.find({user:id}).populate('product')
+
+
+    console.log(pendingReviews)
 
     res.send([...pendingReviews])
 
@@ -469,7 +549,7 @@ Router.get('/get-completed-reviews', authenticateToken, async (req, res)=>{
     console.log("Getting Reviews 2")
     const {id} = req.user
 
-    const reviews = await Review.find({userId:id})
+    const reviews = await Review.find({user:id})
 
     res.send([...reviews])
 

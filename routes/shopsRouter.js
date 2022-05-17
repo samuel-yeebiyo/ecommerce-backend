@@ -39,37 +39,31 @@ Router.get('/orders', authenticateToken, async (req, res)=>{
     console.log("Hitt")
     const {shopId} = req.user
 
-    const orders = await Order.find({shopId: shopId})
+    const allOrders = await Order.find({shop:shopId})
 
-    let map = {}
-    await new Promise( (resolve, reject) => orders.map(async ({orderId, productId}, idx)=>{
+    const orders = []
 
-        let product = await Product.findOne({_id: productId})
-        orders[idx] = {...orders[idx]._doc, name:product.name, image:product.primary}
-        
-        
-        if(Object.keys(map).includes(orderId)){
-            map[`${orderId}`].push(idx)
+    //group orders by orderId
+    allOrders.map((order, idx)=>{
+
+        let index = orders.findIndex((element)=> element.orderId.valueOf() == order.order.valueOf())
+
+        if(index == -1){
+            orders.push({
+              orderId: order.order,
+              values: [idx]
+            })
         }else{
-            map = {...map, [`${orderId}`]:[idx]}
+            orders[index].values.push(idx)
         }
-
-        if(idx == orders.length-1) resolve()
-
-    }))
-    
-    let grouped = []
-    Object.keys(map).map((key,idx)=>{
-        let temp = []
-        map[key].map((val)=>{
-            temp.push(orders[val])
-        })
-        grouped.push(temp)
     })
+
+    console.log(allOrders)
+    console.log(orders)
     
 
     if(orders.length >0){
-        res.send([...grouped])
+        res.send({map: orders, all: allOrders})
     }
 
 

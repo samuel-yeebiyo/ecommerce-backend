@@ -2,8 +2,9 @@ const mongoose = require('mongoose')
 const Review = require('./review')
 
 const productSchema = mongoose.Schema({
-    shopId:{
-        type:String,
+    shop:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'Shop',
         require:true
     },
     name:{
@@ -13,11 +14,16 @@ const productSchema = mongoose.Schema({
         type:Number,
     },
     desc:{
-        type:String,
+        type:String, 
     },
     reviews:{
-        type:[String],
+        type:[mongoose.SchemaTypes.ObjectId],
+        ref:'Review',
         default:[]
+    },
+    revenue:{
+        type:Number,
+        default:0
     },
     category:{
         type:String,
@@ -40,6 +46,14 @@ const productSchema = mongoose.Schema({
     views:{
         type:Number,
         default:0
+    },
+    rating:{
+        type:Number,
+        default:0
+    },
+    createdAt:{
+        type:Date,
+        default:new Date()
     }
 })
 

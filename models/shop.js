@@ -3,8 +3,9 @@ const mongoose = require('mongoose')
 const Sale = require('./sales')
 
 const Shop = mongoose.Schema({
-    sellerId:{
-        type:String,
+    seller:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'User',
         required:true
     },
     name:{
@@ -20,8 +21,9 @@ const Shop = mongoose.Schema({
         required:true
     },
     sales:{
-        type:[Sale],
-        default:[]
+        type:[mongoose.SchemaTypes.ObjectId],
+        default:[],
+        ref:"Sale"
     },
     totalRevenue:{
         type:Number,
@@ -33,8 +35,9 @@ const Shop = mongoose.Schema({
         required:true
     },
     listings:{
-        type:[String],
-        required:true
+        type:[mongoose.SchemaTypes.ObjectId],
+        default:[],
+        ref:'Product'
     },
     pathname:{
         type:String,

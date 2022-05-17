@@ -3,9 +3,10 @@ const mongoose = require('mongoose')
 const Item = require('./Item')
 
 const userOrder = mongoose.Schema({
-    userId:{
-        type: String,
-        required:true
+    user:{
+        type: mongoose.SchemaTypes.ObjectId,
+        required:true,
+        ref:"User"
     },
     items:{
         type: [Item]
@@ -19,7 +20,7 @@ const userOrder = mongoose.Schema({
         type:String,
         default:""
     },
-    fulfilled:{
+    paid:{
         type:Boolean,
         required:true,
         default:false

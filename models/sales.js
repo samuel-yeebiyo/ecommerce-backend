@@ -1,8 +1,8 @@
 const mongoose = require('mongoose')
 
 const Sale = mongoose.Schema({
-    productId:{
-        type:String, 
+    product:{
+        type:mongoose.SchemaTypes.ObjectId,
         required:true
     },
     quantity:{
@@ -13,7 +13,6 @@ const Sale = mongoose.Schema({
         type:Number,
         required:true
     }
-
 })
 
-module.exports = Sale
+module.exports = mongoose.model("Sale", Sale)

@@ -1,20 +1,23 @@
 const mongoose = require('mongoose')
 
 const pending = mongoose.Schema({
-    userId:{
-        type:String,
+    user:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'User',
         required:true
     },
-    productId:{
-        type:String,
-        required:true
+    product:{
+        type:mongoose.SchemaTypes.ObjectId,
+        required:true,
+        ref:'Product'
     },
     deliveryDate:{
         type:Date,
         default:new Date()
     },
-    orderNum:{
-        type:String,
+    order:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'UserOrder',
         required:true
     }
 })

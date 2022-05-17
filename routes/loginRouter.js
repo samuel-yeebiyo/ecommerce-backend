@@ -17,7 +17,7 @@ Router.post('/', async (req,res)=>{
         if( await bcrypt.compare(req.body.password, user.password)){
             console.log("user logged in")
 
-            let shop = await Shop.findOne({sellerId: user._id})
+            let shop = await Shop.findOne({seller: user._id})
             let id = shop ? shop._id : ""
 
             console.log(shop)

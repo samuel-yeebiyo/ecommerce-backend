@@ -1,8 +1,9 @@
 const mongoose = require('mongoose')
 
 const Review = mongoose.Schema({
-    userId:{
-        type:String,
+    user:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'User',
         required:true
     },
     title:{
@@ -22,9 +23,16 @@ const Review = mongoose.Schema({
         type:Date,
         default:new Date()
     },
-    productId:{
-        type:String,
+    product:{
+        type:mongoose.SchemaTypes.ObjectId,
+        ref:'Product',
         required:true
+    },
+    productName:{
+        type:String,
+    },
+    image:{
+        type:String,
     }
 })
 

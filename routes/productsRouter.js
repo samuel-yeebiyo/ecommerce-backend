@@ -10,6 +10,9 @@ const pendingReview = require('../models/pendingReview')
 const authenticateToken = require('../middleware/auth')
 const User = require('../models/User')
 
+
+//Needed for NextJS static generation of product pages
+//////////////////////////////////
 Router.get('/get-paths', async (req, res)=>{
 
     const products = await Product.find()
@@ -28,12 +31,13 @@ Router.get('/get-all', async (req, res)=>{
     res.send(products)
 })
 
-
 Router.get('/get/:path/', async (req, res)=>{
     console.log("Fetching one product")
 
-    const product = await Product.findOne({pathname: req.params.path})
-    const shop = await Shop.findOne({_id: product.shopId})
+    console.log(`Path searching for ${req.params.path}`)
+
+    const product = await Product.findOne({pathname: req.params.path}).populate('reviews')
+    const shop = await Shop.findOne({_id: product.shop})
 
     console.log(product)
     res.send({
@@ -42,6 +46,9 @@ Router.get('/get/:path/', async (req, res)=>{
         shopName:shop.name
     })
 })
+/////////////////////////////////
+
+
 
 Router.get('/get-multiple', authenticateToken , async(req, res)=>{
     
@@ -77,15 +84,20 @@ Router.get('/get-multiple', authenticateToken , async(req, res)=>{
 
 Router.post('/add/', authenticateToken ,async (req, res)=>{
 
-    const shop = await Shop.findOne({_id:req.body.id})
+    const {shopId} = req.user
 
+    const shop = await Shop.findOne({_id:shopId})
+    console.log(`Adding product to shop "${shop.name}" `)
+    
+    
     let tags = []
     if(req.body.tags){
         tags = req.body.tags.split(", ")
     }
 
+    //create a product object
     const product = new Product({
-        shopId:req.body.id,
+        shop:shop._id,
         name:req.body.name,
         price:req.body.price,
         desc:req.body.desc,
@@ -99,8 +111,11 @@ Router.post('/add/', authenticateToken ,async (req, res)=>{
 
     try{
         await product.save().then(async doc=>{
+            
             console.log(doc)
+            console.log("Product saved")
 
+            //add reference to product inside the shop array
             shop.listings = [...shop.listings, product._id]
 
             //extract tags and save to db
@@ -140,11 +155,13 @@ Router.post('/add/', authenticateToken ,async (req, res)=>{
 })
 
 Router.post('/update/:id', authenticateToken, async (req, res)=>{
-    console.log("Endpoint hit!!!!!!!!!!!!")
+    
+    console.log("Updating product")
     
     const {shopId} = req.user
     
     const shop = await Shop.findOne({_id: shopId})
+
     if(!shop.listings.includes(req.params.id)){
         res.send({message: "This product does not belong to you!"})
         return
@@ -156,12 +173,16 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
     const previousTags = product.tags
 
 
+    //new tags
     let tags = []
     if(req.body.tags){
         tags = req.body.tags.split(", ")
     }
 
     if(product != null){
+
+        //update product values
+
         product.name=req.body.name
         product.price=req.body.price,
         product.desc=req.body.desc,
@@ -174,9 +195,12 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
 
         try{
             await product.save().then(doc=>{
+
+
                 console.log(doc)
 
                 let del = []
+                
                 //tags to be deleted
                 previousTags.map((tag)=>{
                     if(!tags.includes(tag)){
@@ -197,6 +221,7 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
                     add.map(async (tag)=>{
                         const existingTag = await Tags.findOne({name: tag})
     
+                        //if tag already exists in the database, add product ref
                         if(existingTag){
                             existingTag.products.push(doc._id);
                             await existingTag.save().then(doc =>{
@@ -205,6 +230,7 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
 
                         }else{
     
+                            //create a new tag with this product ref
                             const newTag = new Tags({
                                 name:tag,
                                 products:[doc._id]
@@ -216,6 +242,7 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
                         }
                     })
                 }
+
                 if(del.length > 0){
 
                     del.map(async (tag)=>{
@@ -223,9 +250,15 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
                         const existingTag = await Tags.findOne({name: tag})
 
                         if(existingTag){
+
                             if(existingTag.products.length == 1){
+
+                                //delete tag from database if this is the last product
                                 await Tags.deleteOne({_id: existingTag._id})    
+
                             }else{
+
+                                //delete this product ref from tag collection
                                 const updated = existingTag.products.filter((id)=> id != doc._id)
                                 existingTag.products = updated
                                 await existingTag.save()
@@ -245,7 +278,14 @@ Router.post('/update/:id', authenticateToken, async (req, res)=>{
     }
 })
 
-Router.post('/review/:product/:user', async(req, res)=>{
+//add endpoints to get  products based on different parameters like
+// category, tags (maybe more)
+
+
+//Reviews
+Router.post('/review/:product/', authenticateToken, async(req, res)=>{
+
+    const {id} = req.user
 
     console.log("Review being processed")
 
@@ -255,24 +295,30 @@ Router.post('/review/:product/:user', async(req, res)=>{
 
     if(product != null){
         let review = new Review({
-            userId:req.params.user,
+            user:id,
             title:title,
             name:name,
             rating:rating,
             description:description,
-            productId:product._id,
+            product:product._id,
             productName:product.name,
             image:product.primary
         })
 
-        product.reviews.push(review._id)
 
         try{
             await review.save().then(async doc=>{
+
+                let total = product.reviews.length
+                let newRating = (product.rating + rating)/(total+1)
+
+                product.reviews.push(review._id)
+                product.rating = newRating
+
                 await product.save().then(()=>{
                     res.send({message:"Success"})
                 })
-                await pendingReview.findOneAndDelete({userId:req.params.user, productId:product._id})
+                await pendingReview.findOneAndDelete({user:id, productId:product._id})
             })
         }catch(e){
             console.log("Problem encountered")
@@ -283,13 +329,16 @@ Router.post('/review/:product/:user', async(req, res)=>{
 
 })
 
-Router.post('/update/review/:id', async(req, res)=>{
+Router.post('/update/review/:id', authenticateToken, async(req, res)=>{
     console.log("Updating review with id ", req.params.id )
 
-    const { id } = req.params
+    const { id } = req.user
+
     const {title, name, rating, description} = req.body
 
-    const review = await Review.findOne({_id: id})
+    const review = await Review.findOne({_id: req.params.id, user: id})
+
+    console.log(review)
 
     if(review != null){
         review.title = title
@@ -298,8 +347,12 @@ Router.post('/update/review/:id', async(req, res)=>{
         review.description = description
 
         try{
-            await review.save().then(()=>{
+            await review.save().then(async ()=>{
                 res.send({message: "Success"})
+
+                let product = await Product.findOne({_id: review.product})
+
+
             })
         }catch(e){
             console.log("Problem encoutered while saving review")
