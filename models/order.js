@@ -48,6 +48,10 @@ const Order = mongoose.Schema({
     status:{
         type:String,
         required:true
+    },
+    createdAt:{
+        type:Date,
+        default:new Date()
     }
 })
 

@@ -16,17 +16,19 @@ const Sale = require('../models/sales')
 
 Router.get('/', async (req, res)=>{
    
-    // await User.deleteMany({})
-    // await Product.deleteMany({})
+    await User.deleteMany({})
+    await Product.deleteMany({})
     await Reciept.deleteMany({})
-    // await Review.deleteMany({})
+    await Review.deleteMany({})
     await pendingReview.deleteMany({})
-    // await Shop.deleteMany({})
+    await Shop.deleteMany({})
     await userOrder.deleteMany({})
-    // await Tags.deleteMany({})
+    await Tags.deleteMany({})
     await Order.deleteMany({})
-    // await Address.deleteMany({})
+    await Address.deleteMany({})
     await Sale.deleteMany({})
+
+    console.log("Database cleared")
 
     res.send({message:"Completed"})
 })

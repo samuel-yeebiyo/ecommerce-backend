@@ -19,7 +19,7 @@ const guestOrder = mongoose.Schema({
         type:String,
         default: ""
     },
-    fulfilled:{
+    paid:{
         type:Boolean,
         required:true,
         default:false

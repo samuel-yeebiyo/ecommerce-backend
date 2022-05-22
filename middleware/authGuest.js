@@ -1,22 +1,23 @@
 const jwt = require('jsonwebtoken')
 
-async function authenticateToken (req,res,next){
+async function authenticateGuest (req, res, next){
 
-    console.log("User Authentication")
-    
+    console.log("Guest authentication")
+
     const header = req.headers.authorization
     if(!header) return res.status(401).send({message:"Token not present"})
 
     const token = header && header.split(' ')[1]
     
-    jwt.verify(token, process.env.JWT_ACCESS, (err, user)=>{
+    jwt.verify(token, process.env.JWT_GUEST, (err, guest)=>{
         if(err) res.status(403).send({message: "Invalid token"})
         else {
-            req.user = {id: user.id, shopId: user.shopId}; 
-            console.log({user})
+            req.guest = {id: guest.id}
+            console.log({guest})
             next()
         }
     })
+
 }
 
-module.exports = authenticateToken
+module.exports = authenticateGuest

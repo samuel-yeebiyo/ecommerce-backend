@@ -25,7 +25,7 @@ Router.post('/', async (req,res)=>{
             let accessToken = jwt.sign({
                 id:user._id,
                 shopId:id
-            }, process.env.JWT_ACCESS)
+            }, process.env.JWT_ACCESS, {expiresIn: '15s'})
             console.log(accessToken)
             let refreshToken = jwt.sign({
                 id:user._id,

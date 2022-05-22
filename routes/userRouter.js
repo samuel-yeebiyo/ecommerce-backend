@@ -13,6 +13,7 @@ const Order = require('../models/order')
 const Address = require('../models/address')
 const Sale = require('../models/sales')
 const Product = require('../models/Product')
+const jwt = require('jsonwebtoken')
 
 const authenticateToken = require('../middleware/auth')
 
@@ -144,24 +145,39 @@ Router.get('/cart', authenticateToken, async(req, res) =>{
 })
 
 //trasnferring userless cart to user
-Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
-    console.log("Transferring cart to user")
+Router.post('/transfer/', authenticateToken, async(req, res)=>{
+
+    const {id} = req.user
+
+    const guestId = jwt.verify(req.body.guestToken, process.env.JWT_GUEST, (err, guest)=>{
+        if(err) res.status(403).send({message: "Invalid token"})
+        else return guest.id
+    })
+
+    console.log(`Transferring cart from ${id} to ${guestId}`)
+
 
     //check if user already has an unfulfilled order
-    const userOrder = await UserOrder.findOne({userId:req.params.id, fulfilled:false})
+    const userOrder = await UserOrder.findOne({user: id, paid:false})
+    
     //make sure a cart with the guestid exists
-    const guestOrder = await GuestOrder.findOne({guestId:req.params.guest, fulfilled:false})
+    const guestOrder = await GuestOrder.findOne({guestId:guestId, paid:false})
+
+
+    console.log(guestOrder)
+    console.log(userOrder)
+
 
     if(userOrder == null && guestOrder != null){
+        
         console.log("Creating a new user order")
 
         //creating new cart with previous guest item
         let orderData = new UserOrder({
-            userId: req.params.id,
+            user: id,
             items: [...guestOrder.items],
             subtotal:guestOrder.subtotal
         })
-
 
         console.log(orderData)
 
@@ -186,7 +202,7 @@ Router.post('/:id/transfer/:guest', authUser, async(req, res)=>{
         guestOrder.items.map((guestItem)=>{
             let exist = false;
             userOrder.items.map((userItem)=>{
-                if(guestItem.itemId == userItem.itemId){
+                if(guestItem.product.equals(userItem.product)){
                     userItem.quantity+=guestItem.quantity
                     exist=true
                     return
@@ -279,6 +295,7 @@ Router.post('/pay', authenticateToken, async(req, res)=>{
                     shop.totalRevenue += item.quantity*product.price
 
                     let sale = new Sale({
+                        shop:shop._id,
                         product:product._id,
                         quantity:item.quantity,
                         revenue:product.price*item.quantity
@@ -374,6 +391,8 @@ Router.post('/add/address', authenticateToken, async (req, res)=>{
         postal:req.body.postal
     })
 
+    console.log({address})
+
     try{
         await address.save().then(doc =>{
             console.log(doc)
@@ -381,6 +400,7 @@ Router.post('/add/address', authenticateToken, async (req, res)=>{
         })
     }catch(e){
         console.log("Problem encountered")
+        console.log(e)
         res.send({message:"Error"})
     }
 

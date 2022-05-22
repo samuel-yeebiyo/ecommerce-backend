@@ -2,11 +2,10 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const mongoose = require('mongoose')
+const redis = require('redis')
+const jwt = require('jsonwebtoken')
 
 require('dotenv').config()
-
-
-
 
 const registrationRouter = require('./routes/registrationRouter')
 const loginRouter = require('./routes/loginRouter')
@@ -18,6 +17,9 @@ const shopsRouter  =require('./routes/shopsRouter')
 const resetRouter = require('./routes/reset')
 const searchRouter = require('./routes/searchRouter')
 
+const client = redis.createClient()
+client.connect()
+
 mongoose.connect(process.env.MONGO_URI, ()=>{
     console.log("Mongodb connected")
 })
@@ -26,6 +28,13 @@ app.use(express.json())
 app.use(cors())
 
 app.get('/', (req,res)=>{
+    console.log("Hello axios")
+
+    const header = req.headers.authorization
+    const token = header && header.split(' ')[1]
+
+    console.log({token})
+
     res.send("Hello")
 })
 
@@ -46,6 +55,33 @@ app.use('/shops/', shopsRouter)
 app.use('/search/', searchRouter)
 
 app.use('/reset', resetRouter)
+
+app.use('/refresh', async(req, res)=>{
+
+    console.log("Refreshing")
+
+    const header = req.headers.authorization
+    const token = header && header.split(' ')[1]
+
+    //check if token is valid in the redis database
+    if(token){
+        jwt.verify(token, process.env.JWT_REFRESH, (err, user)=>{
+            if(!err){
+                const newToken = jwt.sign({
+                    id:user.id,
+                    shopId:user.shopId
+                }, process.env.JWT_ACCESS, {expiresIn: '15s'})
+
+                res.send({accessToken: newToken})
+            }else {
+                console.log(err)
+                res.status(403).send({message: 'nope'})
+            }
+
+        })
+    }else res.send({message:"Nice"})
+
+})
 
 app.listen(8000, ()=>{
     console.log("Port listening on port 8000")

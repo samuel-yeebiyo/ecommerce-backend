@@ -5,6 +5,7 @@ const Shop = require('../models/shop')
 const Product = require('../models/Product')
 const Tags = require('../models/tags')
 const Order = require('../models/order')
+const Sales = require('../models/sales')
 
 const authenticateToken = require('../middleware/auth')
 
@@ -33,6 +34,66 @@ Router.get('/:id/get-products', async(req, res)=>{
     }
     else res.send({message:"error"})
 })
+
+Router.get('/stats', authenticateToken, async (req, res)=>{
+
+    console.log("Getting stats")
+    
+    const {shopId} = req.user
+
+    const shop = await Shop.findOne({_id: shopId})
+    const createdAt = shop.createdAt
+
+    const current = new Date()
+    const curr_year = current.getFullYear()
+    const curr_month = current.getMonth()
+    const curr_day = current.getDate()
+    
+    //get daily
+    const start_day = new Date(curr_year, curr_month, curr_day-7)
+    const sales_daily = await Sales.find({shop: shopId, date: { $gte: start_day, $lte: current}})
+
+    let daily = []
+    for(let i=1; i<=7; i++){
+        let revenue = 0
+        const curr = new Date(start_day.getFullYear(), start_day.getMonth(), start_day.getDate()+i)
+        sales_daily.map((sale, idx)=>{
+            if(sale.date.getMonth() == curr.getMonth() && sale.date.getDate() == curr.getDate()){
+                revenue += sale.revenue
+            }
+        })
+        daily.push(revenue) 
+    }
+
+    //monthly
+    const start_month = new Date(curr_year, curr_month-7, curr_day)
+    const sales_monthly = await Sales.find({shop:shopId, date: { $gte: start_month, $lte: current}})
+
+    let monthly = []
+    for(let i=1; i<=7; i++){
+        let revenue = 0
+        const curr = new Date(start_month.getFullYear(), start_month.getMonth()+i, start_month.getDate())
+        sales_monthly.map((sale, idx)=>{
+            if(sale.date.getMonth() == curr.getMonth()){
+                revenue += sale.revenue
+            }
+        })
+        monthly.push(revenue) 
+    }
+
+    res.send({daily: daily, monthly: monthly})
+
+})
+
+Router.get('/stats/products', authenticateToken, async (req, res)=>{
+
+    const {shopId} = req.user
+
+    const products = await Product.find({shop: shopId})
+
+    res.send(products)
+})
+
 
 Router.get('/orders', authenticateToken, async (req, res)=>{
 
@@ -69,21 +130,6 @@ Router.get('/orders', authenticateToken, async (req, res)=>{
 
 })
 
-Router.get('/:id/clear', async(req, res)=>{
-    const shop = await Shop.findOne({_id:req.params.id})
-
-    console.log("Clearing")
-
-    if(shop != null){
-        shop.listings = []
-        try{
-            await shop.save()
-        }catch(e){
-            console.log("error")
-        }
-    }
-    res.send({message:"IDK"})
-})
 
 // http://localhost:8000/shop/${shop}/delete/${id}
 

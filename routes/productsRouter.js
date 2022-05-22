@@ -45,6 +45,7 @@ Router.get('/get/:path/', async (req, res)=>{
         shopPath:shop.pathname,
         shopName:shop.name
     })
+    
 })
 /////////////////////////////////
 
