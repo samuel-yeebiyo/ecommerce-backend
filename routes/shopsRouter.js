@@ -7,6 +7,7 @@ const Tags = require('../models/tags')
 const Order = require('../models/order')
 const Sales = require('../models/sales')
 
+const mongoose = require('mongoose')
 const authenticateToken = require('../middleware/auth')
 
 Router.get('/:id/get-products', async(req, res)=>{
@@ -112,7 +113,8 @@ Router.get('/orders', authenticateToken, async (req, res)=>{
         if(index == -1){
             orders.push({
               orderId: order.order,
-              values: [idx]
+              values: [idx],
+              status: order.status
             })
         }else{
             orders[index].values.push(idx)
@@ -126,6 +128,50 @@ Router.get('/orders', authenticateToken, async (req, res)=>{
     if(orders.length >0){
         res.send({map: orders, all: allOrders})
     }
+
+
+})
+
+Router.post('/generate', authenticateToken, async (req, res)=>{
+
+    const {shopId} = req.user
+
+    const order = await Order.findOne({order: req.body.order, shop: shopId, status: 'pending'})
+
+    if(order != null){
+        let code = new mongoose.Types.ObjectId().valueOf()
+        res.send({code: code})
+
+        //store in redis
+
+    }else res.send({message: "error"})
+
+
+})
+
+Router.post('/confirmation', authenticateToken, async (req, res) =>{
+
+    const {shopId} = req.user
+
+    //check if confirmation code exists in redis
+
+
+    const orders = await Order.find({order: req.body.order, shop: shopId, status: 'pending'})
+
+    if(orders.length > 0){
+        let err = false
+        orders.map(async (order)=>{
+            order.status = "shipped"
+            try{
+                await order.save()
+            }catch(e){
+                err = true
+                console.log("Problem saving status")
+                res.send({message: "error"})
+            }
+        })
+        !err && res.send({message: "Success"})
+    }else res.send({message: "error"})
 
 
 })
@@ -235,6 +281,16 @@ Router.get('/get/:path/', async (req, res)=>{
 
     console.log("Getting shop ",{shop})
     res.send(shop)
+})
+
+Router.post('/namecheck', async (req, res)=>{
+    console.log("Checking name collision")
+
+    const shop  = await Shop.findOne({name: req.body.name})
+
+    if(shop){
+        res.send({message:false})
+    }else res.send({message:true})
 })
 
 module.exports = Router

@@ -29,6 +29,8 @@ Router.get('/token', async (req, res)=>{
 Router.post('/cart/remove', authenticateGuest, async (req, res) =>{
 
     const {id} = req.guest
+    const {product} = req.body
+
     const guestOrder = await GuestOrder.findOne({guestId: id, paid:false})
 
 

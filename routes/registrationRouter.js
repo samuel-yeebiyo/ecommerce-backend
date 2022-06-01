@@ -90,12 +90,12 @@ Router.post('/seller', authenticateToken, async (req, res)=>{
                 let accessToken = jwt.sign({
                     id:user._id,
                     shopId:doc._id
-                }, process.env.JWT_ACCESS)
+                }, process.env.JWT_ACCESS, {expiresIn: '15s'})
 
                 let refreshToken = jwt.sign({
                     id:user._id,
                     shopId:doc._id
-                }, process.env.JWT_REFRESH)
+                }, process.env.JWT_REFRESH, {expiresIn: '15s'})
                 
                 res.send({id:doc._id, accessToken:accessToken, refreshToken:refreshToken });
             })
