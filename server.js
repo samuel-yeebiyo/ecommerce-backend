@@ -17,7 +17,10 @@ const shopsRouter  =require('./routes/shopsRouter')
 const resetRouter = require('./routes/reset')
 const searchRouter = require('./routes/searchRouter')
 
-const client = redis.createClient()
+const PORT = process.env.SERVER_PORT || 8000
+const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1'
+
+const client = redis.createClient({socket:{host: REDIS_HOST, port:6379}})
 client.connect()
 
 mongoose.connect(process.env.MONGO_URI, ()=>{
@@ -83,6 +86,6 @@ app.use('/refresh', async(req, res)=>{
 
 })
 
-app.listen(8000, ()=>{
-    console.log("Port listening on port 8000")
+app.listen(PORT, ()=>{
+    console.log("Port listening on port ", PORT)
 })
