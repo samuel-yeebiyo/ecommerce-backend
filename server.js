@@ -2,8 +2,8 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const mongoose = require('mongoose')
-const redis = require('redis')
 const jwt = require('jsonwebtoken')
+const redis = require('./lib/redis')
 
 require('dotenv').config()
 
@@ -16,12 +16,9 @@ const uploadRouter = require('./routes/uploadRouter')
 const shopsRouter  =require('./routes/shopsRouter')
 const resetRouter = require('./routes/reset')
 const searchRouter = require('./routes/searchRouter')
+const authenticateToken = require('./middleware/auth')
 
 const PORT = process.env.SERVER_PORT || 8000
-const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1'
-
-const client = redis.createClient({socket:{host: REDIS_HOST, port:6379}})
-client.connect()
 
 mongoose.connect(process.env.MONGO_URI, ()=>{
     console.log("Mongodb connected")
@@ -68,14 +65,24 @@ app.use('/refresh', async(req, res)=>{
 
     //check if token is valid in the redis database
     if(token){
-        jwt.verify(token, process.env.JWT_REFRESH, (err, user)=>{
+        jwt.verify(token, process.env.JWT_REFRESH, async (err, user)=>{
             if(!err){
-                const newToken = jwt.sign({
-                    id:user.id,
-                    shopId:user.shopId
-                }, process.env.JWT_ACCESS, {expiresIn: '15s'})
 
-                res.send({accessToken: newToken})
+                const inRedis = await redis.get(user.id)
+                console.log("In redis, found = ", inRedis)
+                
+                if(inRedis == token){
+                    const newToken = jwt.sign({
+                        id:user.id,
+                        shopId:user.shopId
+                    }, process.env.JWT_ACCESS, {expiresIn: '15s'})
+    
+                    res.send({accessToken: newToken})
+                }else{
+                    console.log("Expired refresh token")
+                    res.status(403).send({message: 'nope'})
+                }
+
             }else {
                 console.log(err)
                 res.status(403).send({message: 'nope'})
@@ -84,6 +91,15 @@ app.use('/refresh', async(req, res)=>{
         })
     }else res.send({message:"Nice"})
 
+})
+
+app.use('/logout', authenticateToken, async (req, res)=>{
+
+    const {id} = req.user
+
+    await redis.del(id)
+
+    res.send({message: "Done"})
 })
 
 app.listen(PORT, ()=>{

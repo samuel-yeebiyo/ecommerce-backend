@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
 const authenticateToken = require('../middleware/auth')
+const redis = require('../lib/redis')
 
 const Shop = require('../models/shop')
 
@@ -30,20 +31,21 @@ Router.post('/', async (req,res)=>{
 
             //save user to the database
             try{
-                user = await user.save().then(doc => {
+                user = await user.save().then(async doc => {
 
                     console.log(`User ${doc.first_name} created`)
                     
                     let accessToken = jwt.sign({
                         id:doc._id,
                         shopId:""
-                    }, process.env.JWT_ACCESS)
+                    }, process.env.JWT_ACCESS, {expiresIn: '15s'})
 
                     let refreshToken = jwt.sign({
                         id:doc._id,
                         shopId:""
                     }, process.env.JWT_REFRESH)
 
+                    await redis.setEx(doc._id.valueOf(), 2592000, refreshToken)
 
                     res.send({ id: doc._id, shopId: doc.shopId, accessToken:accessToken, refreshToken:refreshToken});
                 })

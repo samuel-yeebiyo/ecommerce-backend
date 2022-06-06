@@ -5,6 +5,7 @@ const User = require('../models/User')
 const Shop  = require('..//models/shop')
 const bcrypt = require('bcrypt')
 
+const redis = require('../lib/redis')
 const jwt = require('jsonwebtoken')
 
 Router.post('/', async (req,res)=>{
@@ -26,12 +27,14 @@ Router.post('/', async (req,res)=>{
                 id:user._id,
                 shopId:id
             }, process.env.JWT_ACCESS, {expiresIn: '15s'})
-            console.log(accessToken)
+            
             let refreshToken = jwt.sign({
                 id:user._id,
                 shopId:id
             }, process.env.JWT_REFRESH)
-            console.log(refreshToken)
+
+            await redis.setEx(user._id.valueOf(), 2592000, refreshToken)
+            console.log('saved to redis')
 
             res.send({ id: user._id, shopId:id, accessToken:accessToken, refreshToken:refreshToken});
 

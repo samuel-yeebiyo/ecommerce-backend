@@ -9,7 +9,24 @@ Router.get('/autocomplete/:term', async (req, res)=>{
     
     console.log("Searching for ", term)
 
-    const all = await Product.find({name: {$regex: new RegExp(term, 'i')}})
+    const withName = await Product.find({name: {$regex: new RegExp(term, 'i')}})
+    const withTags = await Product.find({rawTags: {$regex: new RegExp(term, 'i')}})
+
+    const all = []
+    const map = []
+    withName.map((item)=>{
+        if(!map.includes(item._id.valueOf())){
+            all.push(item)
+            map.push(item._id.valueOf())
+        }
+    })
+    withTags.map((item)=>{
+        if(!map.includes(item._id.valueOf())){
+            all.push(item)
+            map.push(item._id.valueOf())
+        }
+    })
+
 
     console.log({all})
 

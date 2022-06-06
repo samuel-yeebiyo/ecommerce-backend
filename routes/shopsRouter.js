@@ -286,7 +286,7 @@ Router.get('/get/:path/', async (req, res)=>{
 Router.post('/namecheck', async (req, res)=>{
     console.log("Checking name collision")
 
-    const shop  = await Shop.findOne({name: req.body.name})
+    const shop  = await Shop.findOne({name: {$regex: new RegExp(req.body.name, 'i')}})
 
     if(shop){
         res.send({message:false})
