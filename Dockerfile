@@ -1,8 +1,9 @@
-FROM node:16-buster-slim
+FROM node:16-buster
 
 RUN apt-get -y update\
         && apt-get -y upgrade \
         && apt install -y redis-server\
+	&& apt install build-essential -y\
         && mkdir /home/app
 
 WORKDIR /home/app
@@ -15,8 +16,10 @@ EXPOSE 8000
 
 COPY ["package.json", "package-lock.json", "./"]
 
+# RUN npm install -g npm@8.12.0
+
 RUN npm install
 
 COPY . .
 
-CMD ["npm", "run", "dev"]
+CMD redis-server --daemonize yes;npm run dev

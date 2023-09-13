@@ -25,7 +25,9 @@ mongoose.connect(process.env.MONGO_URI, ()=>{
 })
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+	origin:'*'
+}))
 
 app.get('/', (req,res)=>{
     console.log("Hello axios")
